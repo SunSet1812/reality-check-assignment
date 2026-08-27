@@ -21,13 +21,20 @@ spring:
         web-allow-others: true
   jackson:
     default-property-inclusion: non_null
+  data:
+    redis:
+      host: cache-server
+      port: 6379
 
 springdoc:
   api-docs:
     path: /v3/api-docs
   swagger-ui:
-    path: /swagger-ui.html
+    path: /api-docs/swagger-ui
 
 logging:
   level:
     com.comeon.assignment.realitycheck: INFO
+
+scheduler-lock:
+  enabled: true

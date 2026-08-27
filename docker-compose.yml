@@ -5,26 +5,46 @@
 #
 # The compose file is intentionally structured so you can add more services on
 # the shared `reality-check-net` network as part of the assignment (for example
-# a cache or a real database). Uncomment / extend the examples at the bottom.
+# a cache or a real database).
 
 services:
   app:
     build: .
-    image: reality-check-legacy:1.0.0
-    container_name: reality-check-legacy
+    image: reality-check:1.0.0
     ports:
       - "8080:8080"
     networks:
       - reality-check-net
     environment:
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75"
+      SPRING_DATA_REDIS_HOST: cache-server
+      SPRING_DATA_REDIS_PORT: 6379
+    depends_on:
+      - cache-server
 
   # --- Extension points (add services here as part of the assignment) ---
   #
-  # redis:
-  #   image: redis:7-alpine
-  #   networks:
-  #     - reality-check-net
+  # Redis is run as a separate cache server so that the application does not
+  # rely on an in-memory cache. This allows multiple application instances
+  # to share the same cache when the service is scaled horizontally.
+  #
+  # The application can connect to Redis using the Docker service name
+  # `cache-server` on port 6379.
+  #
+  # Example Spring Boot configuration:
+  # spring.data.redis.host=cache-server
+  # spring.data.redis.port=6379
+  #
+  cache-server:
+    image: redis:7
+    container_name: reality-check-cache
+    ports:
+      - "6379:6379"
+    networks:
+      - reality-check-net
+
+  # MySQL can be added here if the service is migrated from the
+  # in-memory H2 database to an external relational database.
   #
   # mysql:
   #   image: mysql:8
@@ -33,7 +53,6 @@ services:
   #     MYSQL_ROOT_PASSWORD: root
   #   networks:
   #     - reality-check-net
-
 networks:
   reality-check-net:
     driver: bridge
