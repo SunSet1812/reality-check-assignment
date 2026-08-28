@@ -238,6 +238,6 @@ For scheduled processing, the application instances coordinate through Redis:
 ## Notes
 
 - H2 remains an in-memory database for the self-contained assignment environment.
-- Redis is used as the shared store for distributed scheduler locking.
+- Redis is used for caching and to store shared distributed scheduler locks.
 - Liquibase manages database schema changes and seed data.
 - The service can run as a single instance or as multiple application instances.
