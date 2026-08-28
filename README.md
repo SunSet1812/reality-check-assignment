@@ -81,13 +81,13 @@ and the main processing flow for the player session operations.
 BASE=http://localhost:8080/reality-check
 
 # Current reality-check status for a player
-curl "$BASE/realitycheck/getStatus/1001"
+curl "$BASE/getStatus/1001"
 
 # Get the current reality check, or start one if none exists
-curl "$BASE/realitycheck/getOrStartCheck/1003/45"
+curl "$BASE/getOrStartCheck/1003/45"
 
 # Acknowledge the current reality check
-curl -X PUT "$BASE/realitycheck/acknowledge/1002"
+curl -X PUT "$BASE/acknowledge/1002"
 ```
 
 ---
