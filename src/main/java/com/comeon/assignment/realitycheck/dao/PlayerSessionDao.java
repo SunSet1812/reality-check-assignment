@@ -25,7 +25,7 @@ public class PlayerSessionDao {
     )
     public PlayerSession getActiveSession(long playerId, PlayerSessionStatus playerSessionStatus) {
         return playerSessionRepository.findByPlayerIdAndStatus(playerId, playerSessionStatus)
-                .orElseThrow(() -> new NoSuchElementException("Player is not active or player session not found"));
+                .orElseThrow(() -> new NoSuchElementException("No active player session found associated with playerId: " + playerId));
     }
 
     public Optional<PlayerSession> getActiveOptionalSession(long playerId) {

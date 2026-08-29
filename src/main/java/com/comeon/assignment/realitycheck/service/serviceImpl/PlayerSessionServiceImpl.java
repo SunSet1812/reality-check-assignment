@@ -50,19 +50,18 @@ public class PlayerSessionServiceImpl implements PlayerSessionService {
     ) {
         Instant now = Instant.now();
 
-        PlayerSession tmp = new PlayerSession();
-        tmp.setPlayer(playerRecord);
-        tmp.setFranchiseId(playerRecord.getFranchiseId());
-        tmp.setStatus(ACTIVE);
-        tmp.setIntervalMinutes(intervalMinutes);
-        tmp.setStartedAt(now);
-        tmp.setLastPromptAt(now);
-        tmp.setElapsedSeconds(0L);
-        tmp.setNetAmountMinor(0L);
-        tmp.setAcknowledged(false);
-        tmp.setNextCheckAt(
-                now.plus(intervalMinutes, ChronoUnit.MINUTES)
-        );
+        PlayerSession tmp = PlayerSession.builder()
+                .player(playerRecord)
+                .franchiseId(playerRecord.getFranchiseId())
+                .status(ACTIVE)
+                .intervalMinutes(intervalMinutes)
+                .startedAt(now)
+                .lastPromptAt(now)
+                .elapsedSeconds(0L)
+                .netAmountMinor(0L)
+                .acknowledged(false)
+                .nextCheckAt(now.plus(intervalMinutes, ChronoUnit.MINUTES))
+                .build();
 
         return playerSessionDao.savePlayerSession(
                 tmp,
@@ -100,7 +99,7 @@ public class PlayerSessionServiceImpl implements PlayerSessionService {
         }
 
         PlayerSession updatedPlayerResponse =
-                updateSession(playerId, intervalMinutes);
+                updateSession(playerSession, intervalMinutes);
 
         return playerSessionToDtoMapper.toDto(
                 updatedPlayerResponse,
@@ -109,20 +108,14 @@ public class PlayerSessionServiceImpl implements PlayerSessionService {
     }
 
     private PlayerSession updateSession(
-            long playerId,
+            PlayerSession playerSession,
             int intervalMinutes
     ) {
-        PlayerSession playerSession =
-                playerSessionDao.getActiveSession(
-                        playerId,
-                        PlayerSessionStatus.ACTIVE
-                );
-
         handleCheckTimeout(playerSession, intervalMinutes);
 
         return playerSessionDao.savePlayerSession(
-                playerSession,
-                playerId
+                playerSession, playerSession.getPlayer().getId()
+
         );
     }
 
@@ -163,8 +156,15 @@ public class PlayerSessionServiceImpl implements PlayerSessionService {
                         .acknowledgedAt(Instant.now())
                         .playerSession(playerSession)
                         .build();
-        playerSession.getAcknowledgementList()
-                .add(playerAcknowledgement);
+        if(playerSession.getAcknowledgementList() == null || playerSession.getAcknowledgementList().isEmpty()) {
+            List<PlayerAcknowledgement> playerAcknowledgments = new ArrayList<>();
+            playerAcknowledgments.add(playerAcknowledgement);
+            playerSession.setAcknowledgementList(playerAcknowledgments);
+        }
+        else {
+            playerSession.getAcknowledgementList()
+                    .add(playerAcknowledgement);
+        }
         PlayerSession playerResponse =
                 playerSessionDao.savePlayerSession(
                         playerSession,

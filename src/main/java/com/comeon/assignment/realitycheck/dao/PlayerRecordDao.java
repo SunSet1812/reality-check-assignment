@@ -14,7 +14,9 @@ public class PlayerRecordDao {
     private final PlayerRecordRepository playerRecordRepository;
 
     public PlayerRecord findById(long id) {
-        return playerRecordRepository.findById(id).orElseThrow(NoSuchElementException::new);
+        return playerRecordRepository.findById(id)
+                .orElseThrow(() ->
+                        new NoSuchElementException("No Player Record found with player id " + id));
     }
 
 }
