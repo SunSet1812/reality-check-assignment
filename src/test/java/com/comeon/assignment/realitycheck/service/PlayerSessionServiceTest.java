@@ -1,4 +1,4 @@
-package com.comeon.assignment.realitycheck;
+package com.comeon.assignment.realitycheck.service;
 
 import com.comeon.assignment.realitycheck.dao.PlayerRecordDao;
 import com.comeon.assignment.realitycheck.dao.PlayerSessionDao;
@@ -17,11 +17,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,10 +43,10 @@ public class PlayerSessionServiceTest {
     @Mock
     private PlayerRecordDao playerRecordDao;
 
-    @Mock
+    @Spy
     private PlayerSessionToDtoMapper playerSessionToDtoMapper;
 
-    @Mock
+    @Spy
     private PlayerSessionToSchedulerDto playerSessionToSchedulerDto;
 
     @InjectMocks
@@ -82,20 +82,15 @@ public class PlayerSessionServiceTest {
 
     @Test
     public void shouldSetNewIntervalMinutesWhenActiveSessionIsFound() {
-        PlayerRecord playerRecord = createPlayer();
-        when(playerRecordDao.findById(1001L)).thenReturn(playerRecord);
         PlayerSession playerSession = createPlayerSession();
+        when(playerRecordDao.findById(1001L)).thenReturn(playerSession.getPlayer());
         int intervalMinutes = 30;
         when(playerSessionDao.getActiveOptionalSession(1001L)).thenReturn(Optional.of(playerSession));
         handleCheckTimeout(playerSession, intervalMinutes);
         when(playerSessionDao.savePlayerSession(
                 playerSession, playerSession.getPlayer().getId()))
                 .thenReturn(playerSession);
-        PlayerSessionResponseDto expectedPlayerSessionDto = toPlayerSessionResponseDto(playerSession);
-        when(playerSessionToDtoMapper.toDto(
-                playerSession,
-                playerSession.getPlayer().getTimezone()))
-                .thenReturn(expectedPlayerSessionDto);
+        PlayerSessionResponseDto expectedPlayerSessionDto = playerSessionToDtoMapper.toDto(playerSession, playerSession.getPlayer().getTimezone());
         PlayerSessionResponseDto responsePlayerSessionDto = playerSessionService
                 .checkUpdateOrCreateSession(1001L, 30);
         assertEquals(expectedPlayerSessionDto, responsePlayerSessionDto);
@@ -103,9 +98,8 @@ public class PlayerSessionServiceTest {
 
     @Test
     public void shouldResetAcknowledgementWhenSessionTimeoutIsReachedForActiveSession() {
-        PlayerRecord playerRecord = createPlayer();
-        when(playerRecordDao.findById(1001L)).thenReturn(playerRecord);
         PlayerSession playerSession = createPlayerSession();
+        when(playerRecordDao.findById(1001L)).thenReturn(playerSession.getPlayer());
         Instant t = Instant.now().minus(25, ChronoUnit.MINUTES);
         playerSession.setStartedAt(t);
         playerSession.setLastPromptAt(t);
@@ -116,7 +110,7 @@ public class PlayerSessionServiceTest {
         when(playerSessionDao.savePlayerSession(
                 playerSession, playerSession.getPlayer().getId()))
                 .thenReturn(playerSession);
-        PlayerSessionResponseDto expectedPlayerSessionDto = toPlayerSessionResponseDto(playerSession);
+        PlayerSessionResponseDto expectedPlayerSessionDto = playerSessionToDtoMapper.toDto(playerSession, playerSession.getPlayer().getTimezone());
         when(playerSessionToDtoMapper.toDto(
                 playerSession,
                 playerSession.getPlayer().getTimezone()))
@@ -150,7 +144,7 @@ public class PlayerSessionServiceTest {
         PlayerSession playerSession = createPlayerSession();
         when(playerSessionDao.savePlayerSession(any(PlayerSession.class), eq(1001L)))
                 .thenReturn(playerSession);
-        PlayerSessionResponseDto expectedPlayerSessionDto = toPlayerSessionResponseDto(playerSession);
+        PlayerSessionResponseDto expectedPlayerSessionDto = playerSessionToDtoMapper.toDto(playerSession, playerRecord.getTimezone());
         when(playerSessionToDtoMapper.toDto(playerSession, playerSession.getPlayer().getTimezone()))
                 .thenReturn(expectedPlayerSessionDto);
         int intervalMinutes = 20;
@@ -185,7 +179,7 @@ public class PlayerSessionServiceTest {
         when(playerSessionDao
                 .savePlayerSession(playerSession, 1001L))
                 .thenReturn(playerSession);
-        PlayerSessionResponseDto expectedPlayerSessionDto = toPlayerSessionResponseDto(playerSession);
+        PlayerSessionResponseDto expectedPlayerSessionDto = playerSessionToDtoMapper.toDto(playerSession, playerSession.getPlayer().getTimezone());
         when(playerSessionToDtoMapper.toDto(playerSession, playerSession.getPlayer().getTimezone()))
                 .thenReturn(expectedPlayerSessionDto);
         PlayerSessionResponseDto playerSessionResponseDto = playerSessionService.setAcknowledged(1001L);
@@ -233,9 +227,9 @@ public class PlayerSessionServiceTest {
                 .thenReturn(playerSession2);
 
         PlayerSessionSchedulerDto expectedPlayerSessionSchedulerDto1
-                = toPlayerSessionSchedulerDto(playerSession1);
+                = playerSessionToSchedulerDto.toDto(playerSession1);
         PlayerSessionSchedulerDto expectedPlayerSessionSchedulerDto2
-                = toPlayerSessionSchedulerDto(playerSession2);
+                = playerSessionToSchedulerDto.toDto(playerSession2);
 
         when(playerSessionToSchedulerDto.toDto(playerSession1))
                 .thenReturn(expectedPlayerSessionSchedulerDto1);
@@ -326,53 +320,4 @@ public class PlayerSessionServiceTest {
                 .timezone("Europe/Stockholm")
                 .build();
     }
-
-    private PlayerSessionResponseDto toPlayerSessionResponseDto(PlayerSession playerSession) {
-        PlayerRecord player = playerSession.getPlayer();
-
-        return PlayerSessionResponseDto.builder()
-                .id(playerSession.getId())
-                .playerId(player.getId())
-                .franchiseId(playerSession.getFranchiseId())
-                .status(playerSession.getStatus())
-                .intervalMinutes(playerSession.getIntervalMinutes())
-                .startedAt(formatInstant(
-                        playerSession.getStartedAt(),
-                        player.getTimezone()
-                ))
-                .lastPromptAt(formatInstant(
-                        playerSession.getLastPromptAt(),
-                        player.getTimezone()
-                ))
-                .elapsedSeconds(playerSession.getElapsedSeconds())
-                .netAmountMinor(playerSession.getNetAmountMinor())
-                .acknowledged(playerSession.getAcknowledged())
-                .nextCheckAt(formatInstant(
-                        playerSession.getNextCheckAt(),
-                        player.getTimezone()
-                ))
-                .build();
-    }
-    private String formatInstant(Instant instant, String timezone) {
-        if (instant == null) {
-            return null;
-        }
-
-        return instant
-                .atZone(ZoneId.of(timezone))
-                .toString();
-    }
-
-    private PlayerSessionSchedulerDto toPlayerSessionSchedulerDto(PlayerSession playerSession) {
-        return PlayerSessionSchedulerDto.builder()
-                .playerId(playerSession.getPlayer().getId())
-                .franchiseId(playerSession.getFranchiseId())
-                .intervalMinutes(playerSession.getIntervalMinutes())
-                .elapsedSeconds(playerSession.getElapsedSeconds())
-                .netAmountMinor(playerSession.getNetAmountMinor())
-                .lastPromptAt(playerSession.getLastPromptAt())
-                .nextCheckAt(playerSession.getNextCheckAt())
-                .build();
-    }
-
 }

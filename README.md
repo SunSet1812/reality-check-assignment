@@ -21,6 +21,7 @@ scalable, reliable, and easier to use.
 - Liquibase (schema + seed data applied automatically on startup)
 - springdoc-openapi / Swagger UI
 - Redis
+- JUnit
 - Spring Scheduler
 - ShedLock with Redis as the distributed lock provider
 - Maven
@@ -124,6 +125,7 @@ Repository
 - Introduced **DTOs** so API request/response models are separated from persistence entities.
 - Fixed controller request mappings to use the appropriate HTTP methods.
 - Improved naming and structure where appropriate.
+- Added JUnit tests for the service layer and repository layer to verify business logic, database operations, and custom queries.
 
 ### 2. QA — make the API usable and documented
 

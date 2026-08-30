@@ -23,12 +23,6 @@ public class Redis {
         RedisCacheConfiguration config =
                 RedisCacheConfiguration.defaultCacheConfig()
                         .entryTtl(Duration.ofSeconds(60))
-                        .serializeKeysWith(
-                                RedisSerializationContext.SerializationPair
-                                        .fromSerializer(
-                                                new StringRedisSerializer()
-                                        )
-                        )
                         .serializeValuesWith(
                                 RedisSerializationContext.SerializationPair
                                         .fromSerializer(
